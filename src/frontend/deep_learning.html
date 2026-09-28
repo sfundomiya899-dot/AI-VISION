@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network — AIVision</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">AIVision</div>
+        <ul class="nav-menu">
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/ml">ML</a></li>
+            <li><a href="/deep-learning" class="active">Deep Learning</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Neural Network</h1>
+            <p>3-8-1 feedforward network with ReLU and sigmoid activations. Built from scratch in NumPy.</p>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+            <h3>Architecture</h3>
+            <p>Input(3) → Hidden(8, ReLU) → Output(1, Sigmoid)</p>
+
+            <div class="nn-diagram">
+                <div class="nn-layer">
+                    <div class="nn-circle">3</div>
+                    <div class="nn-label">Input</div>
+                </div>
+                <div class="nn-arrow">→</div>
+                <div class="nn-layer">
+                    <div class="nn-circle primary">8</div>
+                    <div class="nn-label">Hidden</div>
+                </div>
+                <div class="nn-arrow">→</div>
+                <div class="nn-layer">
+                    <div class="nn-circle">1</div>
+                    <div class="nn-label">Output</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="train()">Train Network (100 epochs)</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function train() {
+            const el = document.getElementById('result');
+            el.innerHTML = '<div class="output">Training...</div>';
+
+            try {
+                const r = await fetch('/api/deep-learning/train', { method: 'POST' });
+                const res = await r.json();
+                if (res.success) {
+                    let out = '';
+                    out += 'model: ' + res.model + '\n';
+                    out += 'epochs: ' + res.epochs + '\n';
+                    out += 'accuracy: ' + res.accuracy + '%\n';
+                    out += 'initial_loss: ' + res.initial_loss + '\n';
+                    out += 'final_loss: ' + res.final_loss + '\n';
+                    out += 'loss_history: ' + res.loss_history.join(' → ') + '\n';
+                    el.innerHTML = '<div class="output">' + out + '</div>';
+                } else {
+                    el.innerHTML = '<div class="output"><span class="err">' + res.error + '</span></div>';
+                }
+            } catch (e) {
+                el.innerHTML = '<div class="output"><span class="err">' + e.message + '</span></div>';
+            }
+        }
+    </script>
+</body>
+</html>

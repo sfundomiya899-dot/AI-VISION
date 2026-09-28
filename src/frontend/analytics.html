@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics — AIVision</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">AIVision</div>
+        <ul class="nav-menu">
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/ml">ML</a></li>
+            <li><a href="/deep-learning">Deep Learning</a></li>
+            <li><a href="/analytics" class="active">Analytics</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Statistics</h1>
+            <p>Descriptive statistics, correlations, and activation functions from the current dataset.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="load()">Compute Statistics</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function load() {
+            const el = document.getElementById('result');
+            el.innerHTML = '<div class="output">Computing...</div>';
+
+            try {
+                const r = await fetch('/api/math/statistics');
+                const res = await r.json();
+                if (res.success) {
+                    const s = res.statistics;
+                    let out = '';
+                    out += '── Feature 1 ──\n';
+                    out += 'mean:    ' + s.feature1.mean.toFixed(2) + '\n';
+                    out += 'std_dev: ' + s.feature1.std_dev.toFixed(2) + '\n';
+                    out += 'range:   ' + s.feature1.min.toFixed(2) + ' to ' + s.feature1.max.toFixed(2) + '\n\n';
+                    out += '── Feature 2 ──\n';
+                    out += 'mean:    ' + s.feature2.mean.toFixed(2) + '\n';
+                    out += 'std_dev: ' + s.feature2.std_dev.toFixed(2) + '\n\n';
+                    out += '── Feature 3 ──\n';
+                    out += 'mean:    ' + s.feature3.mean.toFixed(2) + '\n';
+                    out += 'std_dev: ' + s.feature3.std_dev.toFixed(2) + '\n\n';
+                    out += '── Correlations ──\n';
+                    out += 'f1–f2:     ' + s.correlations.f1_f2.toFixed(3) + '\n';
+                    out += 'f1–f3:     ' + s.correlations.f1_f3.toFixed(3) + '\n';
+                    out += 'f1–target: ' + s.correlations.f1_target.toFixed(3) + '\n\n';
+                    out += '── Activation Functions ──\n';
+                    out += 'sigmoid(0.5): ' + s.activation_functions.sigmoid_demo.toFixed(4) + '\n';
+                    out += 'relu(-1.5):   ' + s.activation_functions.relu_demo + '\n';
+                    out += 'softmax:      ' + s.activation_functions.softmax_demo.map(v => v.toFixed(3)).join(', ') + '\n';
+                    out += 'bayes:        ' + s.activation_functions.bayes_demo.toFixed(4) + '\n';
+                    el.innerHTML = '<div class="output">' + out + '</div>';
+                } else {
+                    el.innerHTML = '<div class="output"><span class="err">' + res.error + '</span></div>';
+                }
+            } catch (e) {
+                el.innerHTML = '<div class="output"><span class="err">' + e.message + '</span></div>';
+            }
+        }
+    </script>
+</body>
+</html>

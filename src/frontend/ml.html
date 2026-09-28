@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Models — AIVision</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">AIVision</div>
+        <ul class="nav-menu">
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/ml" class="active">ML</a></li>
+            <li><a href="/deep-learning">Deep Learning</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Machine Learning Models</h1>
+            <p>Train a model on the currently loaded dataset.</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Classification</h3>
+                <p>Random Forest classifier. Predicts category labels.</p>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="run('classify')">Train Model</button>
+                </div>
+                <div id="classifyResult"></div>
+            </div>
+
+            <div class="card">
+                <h3>Regression</h3>
+                <p>Random Forest regressor. Predicts continuous values.</p>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="run('regression')">Train Model</button>
+                </div>
+                <div id="regressionResult"></div>
+            </div>
+
+            <div class="card">
+                <h3>Anomaly Detection</h3>
+                <p>Isolation Forest. Finds outliers without labels.</p>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="run('anomaly')">Run Detection</button>
+                </div>
+                <div id="anomalyResult"></div>
+            </div>
+
+            <div class="card">
+                <h3>Clustering</h3>
+                <p>K-Means clustering. Groups similar samples.</p>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="run('clustering')">Run Clustering</button>
+                </div>
+                <div id="clusteringResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function run(type) {
+            const endpoints = {
+                classify: '/api/ml/classify',
+                regression: '/api/ml/regression',
+                anomaly: '/api/ml/anomaly',
+                clustering: '/api/ml/clustering'
+            };
+            const el = document.getElementById(type + 'Result');
+            el.innerHTML = '<div class="output">Running...</div>';
+
+            try {
+                const r = await fetch(endpoints[type], {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{}'
+                });
+                const res = await r.json();
+                if (res.success) {
+                    let out = '';
+                    for (const [k, v] of Object.entries(res)) {
+                        if (k === 'success') continue;
+                        out += k + ': ' + JSON.stringify(v) + '\n';
+                    }
+                    el.innerHTML = '<div class="output">' + out + '</div>';
+                } else {
+                    el.innerHTML = '<div class="output"><span class="err">' + res.error + '</span></div>';
+                }
+            } catch (e) {
+                el.innerHTML = '<div class="output"><span class="err">' + e.message + '</span></div>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — AIVision</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">AIVision</div>
+        <ul class="nav-menu">
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard" class="active">Dashboard</a></li>
+            <li><a href="/ml">ML</a></li>
+            <li><a href="/deep-learning">Deep Learning</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Datasets</h1>
+            <p>Load data to train the models. Supports CSV upload, URL fetch, or built-in samples.</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" id="tab-generate" onclick="showTab('generate')">Generate</button>
+            <button class="tab" id="tab-upload" onclick="showTab('upload')">Upload CSV</button>
+            <button class="tab" id="tab-url" onclick="showTab('url')">From URL</button>
+            <button class="tab" id="tab-samples" onclick="showTab('samples')">Samples</button>
+        </div>
+
+        <div id="panel-generate">
+            <div class="card">
+                <h3>Generate synthetic data</h3>
+                <p>Creates 500 random samples with correlated features for testing.</p>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="generateData()">Generate 500 samples</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-upload" style="display: none;">
+            <div class="card">
+                <h3>Upload a CSV file</h3>
+                <p>Any CSV with at least 3 numeric columns will work.</p>
+                <div style="margin-top: 16px;">
+                    <input type="file" id="csvFile" accept=".csv" onchange="updateFileName()" style="margin-bottom: 12px;">
+                    <button class="btn btn-primary" onclick="uploadCSV()">Upload</button>
+                    <span id="fileName" style="font-size: 0.8125rem; color: var(--text-muted); margin-left: 12px;">No file selected</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-url" style="display: none;">
+            <div class="card">
+                <h3>Fetch from URL</h3>
+                <p>Paste a direct link to a CSV file (must include https://).</p>
+                <div style="margin-top: 16px;">
+                    <input type="text" id="csvUrl" placeholder="https://example.com/data.csv" style="margin-bottom: 12px;">
+                    <button class="btn btn-primary" onclick="fetchFromUrl()">Fetch data</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-samples" style="display: none;">
+            <div class="card">
+                <h3>Built-in datasets</h3>
+                <p>Click any dataset to load it instantly.</p>
+                <div id="samplesList" class="grid" style="margin-top: 20px;">
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="statsContainer" class="stats-grid"></div>
+        <div id="statusMessage" class="status"></div>
+
+        <div style="margin-top: 24px;">
+            <button class="btn btn-secondary" onclick="loadStats()">Refresh Stats</button>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tab) {
+            document.querySelectorAll('[id^="panel-"]').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+            document.getElementById('panel-' + tab).style.display = 'block';
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusMessage');
+            el.className = 'status show ' + type;
+            el.textContent = msg;
+        }
+
+        async function generateData() {
+            showStatus('Generating...', 'info');
+            const r = await fetch('/api/data/generate', { method: 'POST' });
+            const res = await r.json();
+            if (res.success) { showStatus(res.message, 'success'); loadStats(); }
+            else { showStatus(res.error, 'error'); }
+        }
+
+        function updateFileName() {
+            const f = document.getElementById('csvFile').files[0];
+            document.getElementById('fileName').textContent = f ? f.name : 'No file selected';
+        }
+
+        async function uploadCSV() {
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) { showStatus('Please select a file', 'error'); return; }
+            showStatus('Uploading...', 'info');
+            const fd = new FormData();
+            fd.append('file', file);
+            const r = await fetch('/api/data/upload/csv', { method: 'POST', body: fd });
+            const res = await r.json();
+            if (res.success) { showStatus(res.message, 'success'); loadStats(); }
+            else { showStatus(res.error, 'error'); }
+        }
+
+        async function fetchFromUrl() {
+            const url = document.getElementById('csvUrl').value.trim();
+            if (!url) { showStatus('Please enter a URL', 'error'); return; }
+            showStatus('Fetching...', 'info');
+            const r = await fetch('/api/data/upload/url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const res = await r.json();
+            if (res.success) { showStatus(res.message, 'success'); loadStats(); }
+            else { showStatus(res.error, 'error'); }
+        }
+
+        async function loadSamples() {
+            const r = await fetch('/api/data/samples');
+            const res = await r.json();
+            if (res.success) {
+                const el = document.getElementById('samplesList');
+                el.innerHTML = '';
+                res.datasets.forEach(ds => {
+                    const c = document.createElement('div');
+                    c.className = 'sample-card';
+                    c.innerHTML = `
+                        <strong>${ds.name}</strong>
+                        <p>${ds.description}</p>
+                        <div class="meta">${ds.rows} rows · ${ds.features} features</div>
+                    `;
+                    c.addEventListener('click', () => loadSample(ds.url, ds.name));
+                    el.appendChild(c);
+                });
+            }
+        }
+
+        async function loadSample(url, name) {
+            showStatus('Loading ' + name + '...', 'info');
+            const r = await fetch('/api/data/upload/url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const res = await r.json();
+            if (res.success) { showStatus('Loaded ' + name, 'success'); loadStats(); }
+            else { showStatus(res.error, 'error'); }
+        }
+
+        async function loadStats() {
+            const r = await fetch('/api/analytics/summary');
+            const res = await r.json();
+            if (res.success) {
+                document.getElementById('statsContainer').innerHTML = `
+                    <div class="cell">
+                        <div class="value">${res.total_samples}</div>
+                        <div class="label">Samples</div>
+                    </div>
+                    <div class="cell">
+                        <div class="value">${res.categories.length}</div>
+                        <div class="label">Categories</div>
+                    </div>
+                    <div class="cell">
+                        <div class="value">4</div>
+                        <div class="label">Models</div>
+                    </div>
+                `;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => { loadStats(); loadSamples(); });
+    </script>
+</body>
+</html>
